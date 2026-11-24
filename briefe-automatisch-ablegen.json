@@ -1,0 +1,1111 @@
+{
+  "name": "Briefe automatisch ablegen",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Briefe automatisch ablegen\nNimmt neue Dokumente aus Paperless (Briefe und E-Mail-Belege), lässt sie von der **lokalen KI auf Desktop-PC** (Grafikkarte) einordnen, schreibt Absender, Kategorie, Titel und Schlagworte zurück und legt eine PDF-Kopie sortiert auf der FRITZ!Box ab:\n`Dokumente/<Person>/<Kategorie>/<Jahr>/<Datum>_<Absender>_<Titel>_<Paperless-Nr>.pdf`\n\nUnsichere Dokumente landen in `Dokumente/_Prüfen` und bekommen das Schlagwort **prüfen**. Ist Desktop-PC aus, passiert nichts – nächster Versuch in 15 Minuten.\n\n**Vorher einrichten:** Zugangsdaten **Paperless Token** und **FRITZ!Box FTP**, Schlagwort **abgelegt** in Paperless. Pfade/Modell im Knoten **Einstellungen**.",
+        "height": 260,
+        "width": 780
+      },
+      "id": "d2f3a7ab-1251-4b56-a272-81c832fa43ac",
+      "name": "Notiz 9b00eb",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 1. Neue Dokumente holen",
+        "height": 80,
+        "width": 920,
+        "color": 7
+      },
+      "id": "69940eb4-9a25-438a-813f-3052b0b4d763",
+      "name": "Notiz db3c19",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 2. KI ordnet ein, Ablageort festlegen",
+        "height": 80,
+        "width": 1360,
+        "color": 7
+      },
+      "id": "c2d5eeec-8f20-4ac5-afed-d41d35790c25",
+      "name": "Notiz 7ee402",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        976,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 3. In Paperless eintragen",
+        "height": 80,
+        "width": 1580,
+        "color": 7
+      },
+      "id": "d98f8a18-7442-48dd-a16f-c851be191039",
+      "name": "Notiz b6765b",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 4. PDF auf der FRITZ!Box ablegen",
+        "height": 80,
+        "width": 700,
+        "color": 7
+      },
+      "id": "0352a982-bbca-4959-a374-04d904e73313",
+      "name": "Notiz 1a4a9d",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "25649bea-d7a1-47cc-aab7-b553c046a680",
+      "name": "Alle 15 Minuten",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        544
+      ],
+      "notesInFlow": true,
+      "notes": "Startet den Workflow automatisch alle 15 Minuten."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6c5a1403-7023-44bd-be16-c5c7c02a958f",
+              "name": "paperless_url",
+              "value": "http://192.0.2.1:8010",
+              "type": "string"
+            },
+            {
+              "id": "bcd4cf80-0cb6-446d-a5d3-9994f92ee92e",
+              "name": "ollama_url",
+              "value": "http://192.0.2.2:11434",
+              "type": "string"
+            },
+            {
+              "id": "8f798a15-6f7f-461a-a9ce-648bf673410f",
+              "name": "modell",
+              "value": "qwen2.5:14b",
+              "type": "string"
+            },
+            {
+              "id": "c34f55c7-e911-4c37-b0ff-009de4f28b67",
+              "name": "ordner_dokumente",
+              "value": "/Dokumente",
+              "type": "string"
+            },
+            {
+              "id": "2f926e43-50c4-4b60-bde6-d021369e2f68",
+              "name": "anweisung",
+              "value": "Du ordnest gescannte Briefe und Belege eines Privathaushalts ein. Du bekommst den Text eines Dokuments und antwortest ausschließlich mit JSON.\n\nFelder:\n- person: an wen ist das Dokument gerichtet?\n  \"Max\" = Max Mustermann\n  \"Erika\" = Erika Mustermann\n  \"Gemeinsam\" = nur wenn ausdrücklich an beide, an den Haushalt oder an die Familie gerichtet\n  E-Mail-Belege und Online-Rechnungen ohne anderen Namen gehören zu \"Max\".\n- kategorie: genau eine aus dieser Liste, nach diesen Regeln:\n  \"Verträge & Abos\" = laufende Verträge und Abonnements mit regelmäßiger Zahlung: Mobilfunk, Internet, Streaming, Software- und KI-Dienste (z. B. Anthropic/Claude, ElevenLabs, Microsoft, Avira), Mitgliedschaften\n  \"Rechnungen & Kaufbelege\" = einmalige Käufe und Leistungen: Online-Shops, Baumarkt, Möbel, Elektrogeräte, Handwerker, Kassenbons, Tickets, Hotel- und Reisebuchungen\n  \"Wohnen & Nebenkosten\" = Strom, Gas, Wasser, Abfall, Grundsteuer, Hausverwaltung, Abschläge und Jahresabrechnungen dazu\n  \"Versicherungen\" = alle Versicherungen inkl. Kranken-, Berufsunfähigkeits- und Kfz-Versicherung\n  \"Auto & Mobilität\" = Werkstatt, Tanken, Parken, Bahn, Kfz-Steuer (aber Kfz-Versicherung = Versicherungen)\n  \"Finanzen & Bank\" = Bank, Kredit, Kontoauszüge, Geldanlage, Altersvorsorge – NICHT für normale Rechnungen\n  \"Steuern\" = Finanzamt, Steuerbescheide; \"Behörden\" = Ämter, Agentur für Arbeit, Stadt (außer Grundsteuer)\n  \"Gesundheit\" = Ärzte, Apotheke, Krankenkasse-Schreiben ohne Beitrag; \"Arbeit & Gehalt\" = Arbeitgeber, Lohn, Bewerbung, Weiterbildung\n  \"Sonstiges\" nur, wenn wirklich nichts passt.\n- absender: kurzer Name der Firma, Behörde oder Person, die das Dokument geschickt hat, ohne Adresse und ohne Rechtsform-Zusätze wenn möglich (z. B. \"Musterbank\", \"Finanzamt Musterstadt\", \"Krankenkasse Muster\").\n- datum: Datum des Dokuments im Format JJJJ-MM-TT. Wenn kein Datum erkennbar ist, leerer Text.\n- titel: kurzer deutscher Titel mit 2 bis 6 Wörtern, ohne Datum und ohne Absender (z. B. \"Jahresabrechnung Strom\", \"Beitragsanpassung Kfz-Versicherung\").\n- sicher: true nur wenn du bei Person, Kategorie und Absender sicher bist, sonst false.\n\nErfinde nichts. Wenn der Text unleserlich oder leer ist, setze sicher auf false.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "71e8776a-191f-472e-87be-3e813cf475bb",
+      "name": "Einstellungen",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        544
+      ],
+      "notesInFlow": true,
+      "notes": "Alle Einstellungen an einer Stelle: Adressen, KI-Modell (lokal auf Desktop-PC), Ablageordner (FTP-Pfad) und die Anweisung an die KI."
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.ollama_url }}/api/tags",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "91d8c4af-4ae5-43b7-be7b-8dc429894278",
+      "name": "Desktop-PC erreichbar?",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        704
+      ],
+      "notesInFlow": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "notes": "Fragt Ollama auf Desktop-PC nach seinen Modellen (max. 5 Sekunden). Ist der Rechner aus, gibt es einen Fehler – der wird bewusst ignoriert."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f20f2cf2-8e5b-4f01-9002-8dca2d4a4522",
+              "leftValue": "={{ JSON.stringify($json.models || []) }}",
+              "rightValue": "={{ $('Einstellungen').first().json.modell }}",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "495eb9b9-9f63-442e-a1be-525dfce9d781",
+      "name": "Online und Modell vorhanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        704
+      ],
+      "notesInFlow": true,
+      "notes": "Nur weiter, wenn Desktop-PC geantwortet hat und das Modell vorhanden ist. Sonst endet der Lauf hier."
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Einstellungen').first().json.paperless_url }}/api/tags/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "abgelegt"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fd398c3a-697f-4046-8a3a-cca01565a272",
+      "name": "Schlagwort abgelegt holen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        544
+      ],
+      "notesInFlow": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "[Zugangsdaten: httpHeaderAuth]"
+        }
+      },
+      "notes": "Sucht in Paperless die Nummer des Schlagworts 'abgelegt'."
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Einstellungen').first().json.paperless_url }}/api/documents/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "tags__id__none",
+              "value": "={{ $json.results[0].id }}"
+            },
+            {
+              "name": "page_size",
+              "value": "5"
+            },
+            {
+              "name": "ordering",
+              "value": "added"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a5212ae0-f338-4183-ac24-8fa16a576834",
+      "name": "Neue Dokumente holen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        544
+      ],
+      "notesInFlow": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "[Zugangsdaten: httpHeaderAuth]"
+        }
+      },
+      "notes": "Holt bis zu 5 Dokumente, die noch kein Schlagwort 'abgelegt' haben (älteste zuerst)."
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "id": "793e5182-5671-46c2-974a-b155d1fcfe6b",
+      "name": "Einzeln verarbeiten",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        880,
+        544
+      ],
+      "notesInFlow": true,
+      "notes": "Macht aus der Liste einzelne Einträge – ein Eintrag pro Dokument."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Einstellungen').first().json.ollama_url }}/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"{{ $('Einstellungen').first().json.modell }}\",\n  \"stream\": false,\n  \"keep_alive\": \"10m\",\n  \"options\": { \"temperature\": 0, \"num_ctx\": 8192 },\n  \"format\": {\"type\": \"object\", \"properties\": {\"person\": {\"type\": \"string\", \"enum\": [\"Max\", \"Erika\", \"Gemeinsam\"]}, \"kategorie\": {\"type\": \"string\", \"enum\": [\"Finanzen & Bank\", \"Versicherungen\", \"Steuern\", \"Wohnen & Nebenkosten\", \"Verträge & Abos\", \"Gesundheit\", \"Auto & Mobilität\", \"Arbeit & Gehalt\", \"Behörden\", \"Rechnungen & Kaufbelege\", \"Sonstiges\"]}, \"absender\": {\"type\": \"string\"}, \"datum\": {\"type\": \"string\"}, \"titel\": {\"type\": \"string\"}, \"sicher\": {\"type\": \"boolean\"}}, \"required\": [\"person\", \"kategorie\", \"absender\", \"datum\", \"titel\", \"sicher\"]},\n  \"messages\": [\n    { \"role\": \"system\", \"content\": {{ JSON.stringify($('Einstellungen').first().json.anweisung) }} },\n    { \"role\": \"user\", \"content\": {{ JSON.stringify(\"Titel in Paperless: \" + $json.title + \"\\n\\nText:\\n\" + ($json.content || \"\").slice(0, 6000)) }} }\n  ]\n}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 0
+            }
+          },
+          "timeout": 600000
+        }
+      },
+      "id": "da929fee-87b0-4755-b926-c0648d7e862e",
+      "name": "KI: Dokument einordnen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1104,
+        544
+      ],
+      "notesInFlow": true,
+      "notes": "Schickt Titel und Text (max. 6000 Zeichen) an die lokale KI. Die Antwort ist fest vorgegebenes JSON: Person, Kategorie, Absender, Datum, Titel, sicher. Ein Dokument nach dem anderen."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ad299b42-bd90-4817-af69-cfc0d22f24eb",
+              "name": "doc_id",
+              "value": "={{ $('Einzeln verarbeiten').item.json.id }}",
+              "type": "number"
+            },
+            {
+              "id": "d9dab4dc-8fb1-45a9-b4ae-86978bc99b9e",
+              "name": "tags",
+              "value": "={{ $('Einzeln verarbeiten').item.json.tags }}",
+              "type": "array"
+            },
+            {
+              "id": "0bcb77be-9bf2-4a37-9d76-da9bdc0b6bb6",
+              "name": "paperless_titel",
+              "value": "={{ $('Einzeln verarbeiten').item.json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "81ff8f3a-d17e-4eae-82e3-dab60b18a109",
+              "name": "ki",
+              "value": "={{ JSON.parse($json.message.content) }}",
+              "type": "object"
+            },
+            {
+              "id": "bbf9852b-7a60-4cb5-bb15-f78af2d3769a",
+              "name": "datum",
+              "value": "={{ JSON.parse($json.message.content).datum || $('Einzeln verarbeiten').item.json.created.slice(0, 10) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "835cffc6-d4bf-4b87-aab1-bd57d4c87f8d",
+      "name": "KI-Antwort lesen",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1328,
+        544
+      ],
+      "notesInFlow": true,
+      "notes": "Liest die KI-Antwort und merkt sich Dokumentnummer und bisherige Schlagworte. Ohne erkennbares Datum gilt das Datum aus Paperless."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "246fba34-5bc4-4a9a-bdc4-f61a9a3d5499",
+              "leftValue": "={{ $json.ki.sicher }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "f29f262c-5717-435f-a5ce-7de51aac1058",
+              "leftValue": "={{ $json.ki.absender }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ab6b512b-6d3e-40f2-b168-da19a9b6db2c",
+      "name": "Ist die KI sicher?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1536,
+        544
+      ],
+      "notesInFlow": true,
+      "notes": "Nur wenn die KI sicher ist UND einen Absender erkannt hat, wird sortiert abgelegt. Sonst: Ordner _Prüfen."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "109215c4-5cbf-4604-b25b-8d704a630ee7",
+              "name": "ordner",
+              "value": "={{ $json.ki.person }}/{{ $json.ki.kategorie }}/{{ $json.datum.slice(0, 4) }}",
+              "type": "string"
+            },
+            {
+              "id": "133a1976-e601-48eb-a2ca-84f39b4276cd",
+              "name": "schlagwort",
+              "value": "={{ $json.ki.person }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "77c6321f-62bc-45e3-bcbd-af15b480d183",
+      "name": "Ablageort: sortiert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        480
+      ],
+      "notesInFlow": true,
+      "notes": "Ordner = Person/Kategorie/Jahr. Schlagwort in Paperless = Person."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8f605c23-9180-4033-8ce8-b4f70085689f",
+              "name": "ordner",
+              "value": "_Prüfen",
+              "type": "string"
+            },
+            {
+              "id": "29efb27a-2a32-45be-a85a-3feba9b9335d",
+              "name": "schlagwort",
+              "value": "prüfen",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "749f76cb-9dc8-4707-909f-87aa466ae91a",
+      "name": "Ablageort: prüfen",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        640
+      ],
+      "notesInFlow": true,
+      "notes": "Unsichere Dokumente: Ordner _Prüfen, Schlagwort 'prüfen' – bitte von Hand kontrollieren."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0b988cb4-8074-46f6-8ef9-7343de317a59",
+              "name": "absender",
+              "value": "={{ ($json.ki.absender || 'Unbekannt').replace(/[\\\\/:*?\"<>|]/g, '-').trim().slice(0, 60) }}",
+              "type": "string"
+            },
+            {
+              "id": "47de1ac3-a592-4627-83fb-9c4757f81a1a",
+              "name": "kategorie",
+              "value": "={{ $json.ki.kategorie }}",
+              "type": "string"
+            },
+            {
+              "id": "01c35e2c-d97d-402b-8a9e-0a475d9ba93d",
+              "name": "titel",
+              "value": "={{ ($json.ki.titel || $json.paperless_titel || 'Dokument').replace(/[\\\\/:*?\"<>|]/g, '-').trim().slice(0, 80) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "f81602a9-ebef-4caa-b391-d98d6be83779",
+      "name": "Ablage-Daten",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1984,
+        544
+      ],
+      "notesInFlow": true,
+      "notes": "Führt beide Wege zusammen. Entfernt Zeichen, die in Dateinamen verboten sind (z. B. / : * ?) und kürzt zu lange Namen."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Einstellungen').first().json.paperless_url }}/api/correspondents/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $('Ablage-Daten').item.json.absender, matching_algorithm: 0 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "61cacf2e-655d-46d1-a0f6-52f010258406",
+      "name": "Absender anlegen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        976
+      ],
+      "notesInFlow": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "[Zugangsdaten: httpHeaderAuth]"
+        }
+      },
+      "notes": "Legt den Absender in Paperless an. Gibt es ihn schon, meldet Paperless einen Fehler – der wird bewusst ignoriert."
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Einstellungen').first().json.paperless_url }}/api/correspondents/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "={{ $('Ablage-Daten').item.json.absender }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e510e01c-1ddf-46c3-bf38-7581cce006c7",
+      "name": "Absender-Nr. holen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        976
+      ],
+      "notesInFlow": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "[Zugangsdaten: httpHeaderAuth]"
+        }
+      },
+      "notes": "Holt die Nummer des Absenders aus Paperless."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Einstellungen').first().json.paperless_url }}/api/document_types/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $('Ablage-Daten').item.json.kategorie, matching_algorithm: 0 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "5fb791f8-23b6-42af-b3f1-43d5488b59f6",
+      "name": "Kategorie anlegen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        976
+      ],
+      "notesInFlow": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "[Zugangsdaten: httpHeaderAuth]"
+        }
+      },
+      "notes": "Legt die Kategorie als Dokumenttyp an (falls neu). Fehler bei Doppelten werden ignoriert."
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Einstellungen').first().json.paperless_url }}/api/document_types/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "={{ $('Ablage-Daten').item.json.kategorie }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "408efeba-1935-4b72-b0dc-72cb13d83637",
+      "name": "Kategorie-Nr. holen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        976
+      ],
+      "notesInFlow": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "[Zugangsdaten: httpHeaderAuth]"
+        }
+      },
+      "notes": "Holt die Nummer des Dokumenttyps."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Einstellungen').first().json.paperless_url }}/api/tags/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $('Ablage-Daten').item.json.schlagwort, matching_algorithm: 0 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "451f60c8-e4bc-469f-aa91-4c32d13bd491",
+      "name": "Schlagwort anlegen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        976
+      ],
+      "notesInFlow": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "[Zugangsdaten: httpHeaderAuth]"
+        }
+      },
+      "notes": "Legt das Schlagwort (Person bzw. 'prüfen') an, falls neu."
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Einstellungen').first().json.paperless_url }}/api/tags/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "={{ $('Ablage-Daten').item.json.schlagwort }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d3fa78bc-c5b0-423e-904e-204a6e10f08d",
+      "name": "Schlagwort-Nr. holen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1104,
+        976
+      ],
+      "notesInFlow": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "[Zugangsdaten: httpHeaderAuth]"
+        }
+      },
+      "notes": "Holt die Nummer des Schlagworts."
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Einstellungen').first().json.paperless_url }}/api/documents/{{ $('Ablage-Daten').item.json.doc_id }}/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: $('Ablage-Daten').item.json.titel, correspondent: $('Absender-Nr. holen').item.json.results[0]?.id ?? null, document_type: $('Kategorie-Nr. holen').item.json.results[0]?.id ?? null, tags: $('Ablage-Daten').item.json.tags.concat([$('Schlagwort abgelegt holen').first().json.results[0].id, $json.results[0].id]) }) }}",
+        "options": {}
+      },
+      "id": "181dd6ce-5136-4c6d-993e-e0ad34fed79f",
+      "name": "Paperless aktualisieren",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1328,
+        976
+      ],
+      "notesInFlow": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "[Zugangsdaten: httpHeaderAuth]"
+        }
+      },
+      "notes": "Schreibt Titel, Absender, Kategorie und Schlagworte ins Dokument. Fügt 'abgelegt' hinzu, damit es nicht nochmal verarbeitet wird. Bei kurzzeitigen Paperless-Fehlern 3 Versuche im Abstand von 5 Sekunden."
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Einstellungen').first().json.paperless_url }}/api/documents/{{ $('Ablage-Daten').item.json.doc_id }}/download/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "original",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "b93470ca-4ed9-44a5-a09d-d1efa1ea21a6",
+      "name": "PDF herunterladen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1536,
+        976
+      ],
+      "notesInFlow": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "[Zugangsdaten: httpHeaderAuth]"
+        }
+      },
+      "notes": "Lädt das Original-PDF aus Paperless."
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "path": "={{ $('Einstellungen').first().json.ordner_dokumente }}/_neu_{{ $('Ablage-Daten').item.json.doc_id }}.pdf",
+        "options": {}
+      },
+      "id": "f281d932-b1cf-49c7-8f64-bfec5c64005f",
+      "name": "PDF hochladen",
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        976
+      ],
+      "notesInFlow": true,
+      "credentials": {
+        "ftp": {
+          "id": "CREDENTIAL_ID",
+          "name": "[Zugangsdaten: ftp]"
+        }
+      },
+      "notes": "Lädt das PDF per FTP zuerst unter einem Zwischennamen in den Ordner Dokumente."
+    },
+    {
+      "parameters": {
+        "operation": "rename",
+        "oldPath": "={{ $('Einstellungen').first().json.ordner_dokumente }}/_neu_{{ $('Ablage-Daten').item.json.doc_id }}.pdf",
+        "newPath": "={{ $('Einstellungen').first().json.ordner_dokumente }}/{{ $('Ablage-Daten').item.json.ordner }}/{{ $('Ablage-Daten').item.json.datum }}_{{ $('Ablage-Daten').item.json.absender }}_{{ $('Ablage-Daten').item.json.titel }}_{{ $('Ablage-Daten').item.json.doc_id }}.pdf",
+        "options": {
+          "createDirectories": true
+        }
+      },
+      "id": "ad009226-5154-47fb-b24d-2ad58f5b0008",
+      "name": "PDF in Zielordner verschieben",
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        1984,
+        976
+      ],
+      "notesInFlow": true,
+      "credentials": {
+        "ftp": {
+          "id": "CREDENTIAL_ID",
+          "name": "[Zugangsdaten: ftp]"
+        }
+      },
+      "notes": "Verschiebt das PDF in den Zielordner und gibt ihm den endgültigen Namen. Fehlende Ordner werden automatisch angelegt. Die Paperless-Nr. am Ende verhindert doppelte Dateinamen."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Alle 15 Minuten": {
+      "main": [
+        [
+          {
+            "node": "Einstellungen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Einstellungen": {
+      "main": [
+        [
+          {
+            "node": "Desktop-PC erreichbar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Desktop-PC erreichbar?": {
+      "main": [
+        [
+          {
+            "node": "Online und Modell vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Online und Modell vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "Schlagwort abgelegt holen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schlagwort abgelegt holen": {
+      "main": [
+        [
+          {
+            "node": "Neue Dokumente holen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Neue Dokumente holen": {
+      "main": [
+        [
+          {
+            "node": "Einzeln verarbeiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Einzeln verarbeiten": {
+      "main": [
+        [
+          {
+            "node": "KI: Dokument einordnen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "KI: Dokument einordnen": {
+      "main": [
+        [
+          {
+            "node": "KI-Antwort lesen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "KI-Antwort lesen": {
+      "main": [
+        [
+          {
+            "node": "Ist die KI sicher?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ist die KI sicher?": {
+      "main": [
+        [
+          {
+            "node": "Ablageort: sortiert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ablageort: prüfen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ablageort: sortiert": {
+      "main": [
+        [
+          {
+            "node": "Ablage-Daten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ablageort: prüfen": {
+      "main": [
+        [
+          {
+            "node": "Ablage-Daten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ablage-Daten": {
+      "main": [
+        [
+          {
+            "node": "Absender anlegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Absender anlegen": {
+      "main": [
+        [
+          {
+            "node": "Absender-Nr. holen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Absender-Nr. holen": {
+      "main": [
+        [
+          {
+            "node": "Kategorie anlegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kategorie anlegen": {
+      "main": [
+        [
+          {
+            "node": "Kategorie-Nr. holen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kategorie-Nr. holen": {
+      "main": [
+        [
+          {
+            "node": "Schlagwort anlegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schlagwort anlegen": {
+      "main": [
+        [
+          {
+            "node": "Schlagwort-Nr. holen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schlagwort-Nr. holen": {
+      "main": [
+        [
+          {
+            "node": "Paperless aktualisieren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless aktualisieren": {
+      "main": [
+        [
+          {
+            "node": "PDF herunterladen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF herunterladen": {
+      "main": [
+        [
+          {
+            "node": "PDF hochladen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF hochladen": {
+      "main": [
+        [
+          {
+            "node": "PDF in Zielordner verschieben",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "errorWorkflow": "[errorWorkflow]"
+  },
+  "versionId": "[versionId]",
+  "meta": {
+    "instanceId": "[instanceId]"
+  },
+  "nodeGroups": [],
+  "id": "[id]",
+  "tags": []
+}
