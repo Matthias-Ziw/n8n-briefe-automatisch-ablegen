@@ -24,6 +24,12 @@ flowchart LR
     H --> I[PDF per FTP<br/>sortiert ablegen]
 ```
 
+### Prozessmodell (BPMN 2.0)
+
+![BPMN-2.0-Modell des Workflows](bpmn/briefe-automatisch-ablegen.drawio.svg)
+
+Das Modell zeigt den n8n-Workflow als Pool und Paperless-ngx, die lokale KI und die FTP-Ablage als externe Systeme mit Nachrichtenflüssen. Die Verarbeitung je Dokument ist ein sequenzieller Mehrfachinstanz-Teilprozess. Die Datei [`bpmn/briefe-automatisch-ablegen.drawio.svg`](bpmn/briefe-automatisch-ablegen.drawio.svg) lässt sich direkt in [draw.io](https://app.diagrams.net) öffnen und bearbeiten.
+
 **Ergebnis je Dokument:**
 `Dokumente/<Person>/<Kategorie>/<Jahr>/<Datum>_<Absender>_<Titel>_<Nr>.pdf`
 also zum Beispiel `Dokumente/Max/Versicherungen/2026/2026-03-14_Musterversicherung_Beitragsanpassung Kfz_412.pdf`
